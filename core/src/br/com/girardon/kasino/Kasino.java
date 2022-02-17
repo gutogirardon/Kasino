@@ -7,6 +7,7 @@ import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
@@ -16,56 +17,69 @@ import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.TimeUtils;
 
 import java.util.Iterator;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class Kasino extends ApplicationAdapter {
-	private Texture dropImage;
-	private Texture bucketImage;
-	private Sound dropSound;
-	private Music rainMusic;
+	private Texture kasinoAvatarImage;
+	private Texture gilavatarImage;
+	private Sound kasinoSound;
+	private Sound kasinaoSound;
+	private Sound sabadacoSound;
+	private Music bgMusic;
 	private SpriteBatch batch;
 	private OrthographicCamera camera;
-	private Rectangle bucket;
-	private Array<Rectangle> raindrops;
+	private Rectangle gilAvatar;
+	private Array<Rectangle> kasinoDrops;
 	private long lastDropTime;
+	private int score;
+	private String scoreText;
+	private BitmapFont scoreFont;
 
 	@Override
 	public void create () {
-		// load the images for the droplet and the bucket, 64x64 pixels each
-		dropImage = new Texture(Gdx.files.internal("drop.png"));
-		bucketImage = new Texture(Gdx.files.internal("bucket.png"));
+		//start score
+		score = 0;
 
-		// load the drop sound effect and the rain background "music"
-		dropSound = Gdx.audio.newSound(Gdx.files.internal("rain.wav"));
-		rainMusic = Gdx.audio.newMusic(Gdx.files.internal("bucket.mp3"));
+		scoreFont = new BitmapFont();
+
+		// load the images for the kasino and the gil
+		kasinoAvatarImage = new Texture(Gdx.files.internal("kasino.png"));
+		gilavatarImage = new Texture(Gdx.files.internal("gil.png"));
+
+		// load the sounds effect and the background "music"
+		kasinoSound = Gdx.audio.newSound(Gdx.files.internal("kasino_sound.mp3"));
+		kasinaoSound = Gdx.audio.newSound(Gdx.files.internal("kasinao_sound.mp3"));
+		sabadacoSound = Gdx.audio.newSound(Gdx.files.internal("sabadaco_sound.mp3"));
+		bgMusic = Gdx.audio.newMusic(Gdx.files.internal("bg_music.mp3"));
 
 		// start the playback of the background music immediately
-		rainMusic.setLooping(true);
-		rainMusic.play();
+		bgMusic.setLooping(true);
+		bgMusic.play();
 
 		// create the camera and the SpriteBatch
 		camera = new OrthographicCamera();
 		camera.setToOrtho(false, 800, 480);
 		batch = new SpriteBatch();
 
-		// create a Rectangle to logically represent the bucket
-		bucket = new Rectangle();
-		bucket.x = 800 / 2 - 64 / 2; // center the bucket horizontally
-		bucket.y = 20; // bottom left corner of the bucket is 20 pixels above the bottom screen edge
-		bucket.width = 64;
-		bucket.height = 64;
+		// create a Rectangle to logically represent the gilAvatar
+		gilAvatar = new Rectangle();
+		gilAvatar.x = 800 / 2 - 64 / 2; // center the gilAvatar horizontally
+		gilAvatar.y = 20; // bottom left corner of the gilAvatar is 20 pixels above the bottom screen edge
+		gilAvatar.width = 64;
+		gilAvatar.height = 64;
 
-		// create the raindrops array and spawn the first raindrop
-		raindrops = new Array<Rectangle>();
-		spawnRaindrop();
+		// create the kasinodrops array and spawn the first kasino
+		kasinoDrops = new Array<Rectangle>();
+		spawnkasinoDrop();
 	}
 
-	private void spawnRaindrop() {
-		Rectangle raindrop = new Rectangle();
-		raindrop.x = MathUtils.random(0, 800-64);
-		raindrop.y = 480;
-		raindrop.width = 64;
-		raindrop.height = 64;
-		raindrops.add(raindrop);
+	private void spawnkasinoDrop() {
+		Rectangle kasinoDrop = new Rectangle();
+		kasinoDrop.x = MathUtils.random(0, 800-64);
+		kasinoDrop.y = 480;
+		kasinoDrop.width = 64;
+		kasinoDrop.height = 64;
+		kasinoDrops.add(kasinoDrop);
 		lastDropTime = TimeUtils.nanoTime();
 	}
 
@@ -84,12 +98,17 @@ public class Kasino extends ApplicationAdapter {
 		// coordinate system specified by the camera.
 		batch.setProjectionMatrix(camera.combined);
 
-		// begin a new batch and draw the bucket and
+		// begin a new batch and draw the gilAvatar and
 		// all drops
 		batch.begin();
-		batch.draw(bucketImage, bucket.x, bucket.y);
-		for(Rectangle raindrop: raindrops) {
-			batch.draw(dropImage, raindrop.x, raindrop.y);
+		scoreText = "Kasinos Score: " + score;
+
+		scoreFont.setColor(1.0f, 1.0f, 1.0f, 1.0f);
+		scoreFont.draw(batch, scoreText, 25, 100);
+
+		batch.draw(gilavatarImage, gilAvatar.x, gilAvatar.y);
+		for(Rectangle kasinoDrop: kasinoDrops) {
+			batch.draw(kasinoAvatarImage, kasinoDrop.x, kasinoDrop.y);
 		}
 		batch.end();
 
@@ -98,38 +117,44 @@ public class Kasino extends ApplicationAdapter {
 			Vector3 touchPos = new Vector3();
 			touchPos.set(Gdx.input.getX(), Gdx.input.getY(), 0);
 			camera.unproject(touchPos);
-			bucket.x = touchPos.x - 64 / 2;
+			gilAvatar.x = touchPos.x - 64 / 2;
 		}
-		if(Gdx.input.isKeyPressed(Keys.LEFT)) bucket.x -= 200 * Gdx.graphics.getDeltaTime();
-		if(Gdx.input.isKeyPressed(Keys.RIGHT)) bucket.x += 200 * Gdx.graphics.getDeltaTime();
+		if(Gdx.input.isKeyPressed(Keys.LEFT)) gilAvatar.x -= 200 * Gdx.graphics.getDeltaTime();
+		if(Gdx.input.isKeyPressed(Keys.RIGHT)) gilAvatar.x += 200 * Gdx.graphics.getDeltaTime();
 
-		// make sure the bucket stays within the screen bounds
-		if(bucket.x < 0) bucket.x = 0;
-		if(bucket.x > 800 - 64) bucket.x = 800 - 64;
+		// make sure the gilAvatar stays within the screen bounds
+		if(gilAvatar.x < 0) gilAvatar.x = 0;
+		if(gilAvatar.x > 800 - 64) gilAvatar.x = 800 - 64;
 
-		// check if we need to create a new raindrop
-		if(TimeUtils.nanoTime() - lastDropTime > 1000000000) spawnRaindrop();
+		// check if we need to create a new kasinoDrop
+		if(TimeUtils.nanoTime() - lastDropTime > 1000000000) spawnkasinoDrop();
 
-		// move the raindrops, remove any that are beneath the bottom edge of
-		// the screen or that hit the bucket. In the latter case we play back
+		// move the kasinoDrops, remove any that are beneath the bottom edge of
+		// the screen or that hit the gilAvatar. In the latter case we play back
 		// a sound effect as well.
-		for (Iterator<Rectangle> iter = raindrops.iterator(); iter.hasNext(); ) {
-			Rectangle raindrop = iter.next();
-			raindrop.y -= 200 * Gdx.graphics.getDeltaTime();
-			if(raindrop.y + 64 < 0) iter.remove();
-			if(raindrop.overlaps(bucket)) {
-				dropSound.play();
+		for (Iterator<Rectangle> iter = kasinoDrops.iterator(); iter.hasNext(); ) {
+			Rectangle kasinoDrop = iter.next();
+			kasinoDrop.y -= 200 * Gdx.graphics.getDeltaTime();
+			if(kasinoDrop.y + 64 < 0) iter.remove();
+			if(kasinoDrop.overlaps(gilAvatar)) {
+				switch (ThreadLocalRandom.current().nextInt(1, 3 + 1)) {
+					case 1: kasinoSound.play(); break;
+					case 2: sabadacoSound.play(); break;
+					case 3: kasinaoSound.play(); break;
+				}
+				score=score+1;
 				iter.remove();
 			}
 		}
+
 	}
-	
+
 	@Override
 	public void dispose () {
-		dropImage.dispose();
-		bucketImage.dispose();
-		dropSound.dispose();
-		rainMusic.dispose();
+		kasinoAvatarImage.dispose();
+		gilavatarImage.dispose();
+		kasinoSound.dispose();
+		bgMusic.dispose();
 		batch.dispose();
 	}
 }
